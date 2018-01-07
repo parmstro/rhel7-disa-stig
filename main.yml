@@ -1,0 +1,8 @@
+# Apply the DISA STIG role to the server.
+
+
+- name: Apply the new server role to a hostname
+  become: yes
+
+  roles:
+    - rhel7-disa-stig-os
