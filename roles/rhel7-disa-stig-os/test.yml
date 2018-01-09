@@ -1,5 +1,0 @@
----
-- hosts: localhost
-  remote_user: root
-  roles:
-    - ssg-rhel7-role-stig-rhel7-disa

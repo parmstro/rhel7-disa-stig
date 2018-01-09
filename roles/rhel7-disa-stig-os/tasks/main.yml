@@ -39,6 +39,7 @@
       when: ansible_distribution == "Fedora"
     
     # Old versions of Fedora use yum
+
     
     - name: Ensure GPG check is globally activated (yum)
       ini_file:
@@ -63,6 +64,7 @@
         - PCI-DSS-Req-6.2
         - CJIS-5.10.4.1
         - DISA-STIG-RHEL-07-020050
+    
     
     - name: Ensure GPG check is globally activated (dnf)
       ini_file:
@@ -89,26 +91,7 @@
         - DISA-STIG-RHEL-07-020050
     
     
-    - name: "Security patches are up to date"
-      package:
-        name: "*"
-        state: "latest"
-      tags:
-        - security_patches_up_to_date
-        - high_severity
-        - patch_strategy
-        - low_complexity
-        - high_disruption
-        - CCE-26895-3
-        - NIST-800-53-SI-2
-        - NIST-800-53-SI-2(c)
-        - NIST-800-53-MA-1(b)
-        - PCI-DSS-Req-6.2
-        - CJIS-5.10.4.1
-        - DISA-STIG-RHEL-07-020260
-    
-    
-    - name: "Ensure YUM Removes Previous Package Versions"
+    - name: Ensure YUM Removes Previous Package Versions
       lineinfile:
           dest: /etc/yum.conf
           regexp: ^#?clean_requirements_on_remove
@@ -125,14 +108,6 @@
         - NIST-800-171-3.4.8
         - DISA-STIG-RHEL-07-020200
     
-    - name: Check existence of yum on Fedora
-      stat:
-        path: /etc/yum.conf
-      register: yum_config_file
-      check_mode: no
-      when: ansible_distribution == "Fedora"
-    
-    # Old versions of Fedora use yum
     
     - name: Ensure GPG check Enabled for Local Packages (Yum)
       ini_file:
@@ -173,6 +148,25 @@
         - NIST-800-53-CM-5(3)
         - NIST-800-171-3.4.8
         - DISA-STIG-RHEL-07-020060
+
+
+    - name: Ensure available Security patches are up to date"
+      package:
+        name: "*"
+        state: "latest"
+      tags:
+        - security_patches_up_to_date
+        - high_severity
+        - patch_strategy
+        - low_complexity
+        - high_disruption
+        - CCE-26895-3
+        - NIST-800-53-SI-2
+        - NIST-800-53-SI-2(c)
+        - NIST-800-53-MA-1(b)
+        - PCI-DSS-Req-6.2
+        - CJIS-5.10.4.1
+        - DISA-STIG-RHEL-07-020260
     
     
     - name: Ensure aide is installed
@@ -198,31 +192,7 @@
         - CJIS-5.10.1.3
     
     
-    - name: "Ensure AIDE is installed"
-      package:
-        name="{{item}}"
-        state=present
-      with_items:
-        - aide
-      tags:
-        - aide_periodic_cron_checking
-        - medium_severity
-        - restrict_strategy
-        - low_complexity
-        - low_disruption
-        - CCE-26952-2
-        - NIST-800-53-CM-3(d)
-        - NIST-800-53-CM-3(e)
-        - NIST-800-53-CM-3(5)
-        - NIST-800-53-CM-6(d)
-        - NIST-800-53-CM-6(3)
-        - NIST-800-53-SC-28
-        - NIST-800-53-SI-7
-        - PCI-DSS-Req-11.5
-        - CJIS-5.10.1.3
-        - DISA-STIG-RHEL-07-020030
-    
-    - name: "Configure Periodic Execution of AIDE"
+    - name: Configure Periodic Execution of AIDE
       cron:
         name: "run AIDE check"
         minute: 05
@@ -247,7 +217,9 @@
         - PCI-DSS-Req-11.5
         - CJIS-5.10.1.3
         - DISA-STIG-RHEL-07-020030
-    - name: "Read list of files with incorrect permissions"
+
+
+    - name: Generate list of rpm files with non-default permissions
       shell: "rpm -Va | grep '^.M' | cut -d ' ' -f5- | sed -r 's;^.*\\s+(.+);\\1;g'"
       register: files_with_incorrect_permissions
       failed_when: False
@@ -270,8 +242,9 @@
         - PCI-DSS-Req-11.5
         - CJIS-5.10.4.1
         - DISA-STIG-RHEL-07-010010
-    
-    - name: "Correct file permissions with RPM"
+
+
+    - name: Correct file permissions with RPM
       shell: "rpm --setperms $(rpm -qf '{{item}}')"
       with_items: "{{ files_with_incorrect_permissions.stdout_lines }}"
       when: files_with_incorrect_permissions.stdout_lines | length > 0
@@ -294,7 +267,7 @@
         - DISA-STIG-RHEL-07-010010
     
     
-    - name: "Set fact: Package manager reinstall command (dnf)"
+    - name: Set fact - Package manager reinstall command (dnf)
       set_fact:
         package_manager_reinstall_cmd: dnf reinstall -y
       when: ansible_distribution == "Fedora"
@@ -314,7 +287,7 @@
         - CJIS-5.10.4.1
         - DISA-STIG-RHEL-07-010020
     
-    - name: "Set fact: Package manager reinstall command (yum)"
+    - name: Set fact - Package manager reinstall command (yum)
       set_fact:
         package_manager_reinstall_cmd: yum reinstall -y
       when: ansible_distribution == "RedHat"
@@ -334,7 +307,7 @@
         - CJIS-5.10.4.1
         - DISA-STIG-RHEL-07-010020
     
-    - name: "Read files with incorrect hash"
+    - name: Generate list of files with incorrect hash
       shell: "rpm -Va | grep -E '^..5.* /(bin|sbin|lib|lib64|usr)/' | sed -r 's;^.*\\s+(.+);\\1;g'"
       register: files_with_incorrect_hash
       changed_when: False
@@ -356,7 +329,7 @@
         - CJIS-5.10.4.1
         - DISA-STIG-RHEL-07-010020
     
-    - name: "Reinstall packages of files with incorrect hash"
+    - name: Reinstall packages of files with incorrect hash
       shell: "{{package_manager_reinstall_cmd}} $(rpm -qf '{{item}}')"
       with_items: "{{ files_with_incorrect_hash.stdout_lines }}"
       when: package_manager_reinstall_cmd is defined and (files_with_incorrect_hash.stdout_lines | length > 0)
@@ -377,7 +350,7 @@
         - DISA-STIG-RHEL-07-010020
     
     
-    - name: "Disable GDM Automatic Login"
+    - name: Disable GDM Automatic Login
       ini_file:
         dest: /etc/gdm/custom.conf
         section: daemon
@@ -395,7 +368,7 @@
         - NIST-800-171-3.1.1
         - DISA-STIG-RHEL-07-010440
     
-    - name: "Disable GDM Guest Login"
+    - name: Disable GDM Guest Login
       ini_file:
         dest: /etc/gdm/custom.conf
         section: daemon
@@ -413,18 +386,13 @@
         - NIST-800-171-3.1.1
         - DISA-STIG-RHEL-07-010450
     
-    - name: XCCDF Value inactivity_timeout_value # promote to variable
-      set_fact:
-        inactivity_timeout_value: 900
-      tags:
-        - always
-    
-    - name: "Set GNOME3 Screensaver Inactivity Timeout"
+
+    - name: Set GNOME3 Screensaver Inactivity Timeout
       ini_file:
         dest: "/etc/dconf/db/local/d/00-security-settings"
         section: "org/gnome/desktop/screensaver"
         option: idle-delay
-        value: "{{ inactivity_timeout_value }}"
+        value: "{{ screensaver_inactivity_timeout }}"
         create: yes
       tags:
         - dconf_gnome_screensaver_idle_delay
@@ -439,7 +407,7 @@
         - CJIS-5.5.5
         - DISA-STIG-RHEL-07-010070
     
-    - name: "Prevent user modification of GNOME idle-delay"
+    - name: Prevent user modification of GNOME idle-delay
       lineinfile:
         path: /etc/dconf/db/local.d/locks/00-security-settings-lock
         regexp: '^/org/gnome/desktop/screensaver/idle-delay'
@@ -458,7 +426,7 @@
         - CJIS-5.5.5
         - DISA-STIG-RHEL-07-010070
     
-    - name: "Enable GNOME3 Screensaver Idle Activation"
+    - name: Enable GNOME3 Screensaver Idle Activation
       ini_file:
         dest: "/etc/dconf/db/local/d/00-security-settings"
         section: "org/gnome/desktop/screensaver"
@@ -478,7 +446,7 @@
         - CJIS-5.5.5
         - DISA-STIG-RHEL-07-010100
     
-    - name: "Prevent user modification of GNOME idle_activation_enabled"
+    - name: Prevent user modification of GNOME idle_activation_enabled
       lineinfile:
         path: /etc/dconf/db/local.d/locks/00-security-settings-lock
         regexp: '^/org/gnome/desktop/screensaver/idle-activation-enabled'
@@ -497,7 +465,7 @@
         - CJIS-5.5.5
         - DISA-STIG-RHEL-07-010100
     
-    - name: "Enable GNOME3 Screensaver Lock After Idle Period"
+    - name: Enable GNOME3 Screensaver Lock After Idle Period
       ini_file:
         dest: "/etc/dconf/db/local/d/00-security-settings"
         section: "org/gnome/desktop/screensaver"
@@ -517,7 +485,7 @@
         - CJIS-5.5.5
         - DISA-STIG-RHEL-07-010060
     
-    - name: "Prevent user modification of GNOME lock-enabled"
+    - name: Prevent user modification of GNOME lock-enabled
       lineinfile:
         path: /etc/dconf/db/local.d/locks/00-security-settings-lock
         regexp: '^/org/gnome/desktop/screensaver/lock-enabled'
@@ -536,12 +504,12 @@
         - CJIS-5.5.5
         - DISA-STIG-RHEL-07-010060
     
-    - name: "Set GNOME3 Screensaver Lock Delay After Activation Period"
+    - name: Set GNOME3 Screensaver Lock Delay After Activation Period
       ini_file:
         dest: "/etc/dconf/db/local/d/00-security-settings"
         section: "org/gnome/desktop/screensaver"
         option: lock-delay
-        value: uint32 5
+        value: "uint32 {{ screensaver_lock_delay_after_activation_period }}"
         create: yes
       tags:
         - dconf_gnome_screensaver_lock_delay
@@ -555,7 +523,7 @@
         - PCI-DSS-Req-8.1.8
         - DISA-STIG-RHEL-07-010110
     
-    - name: "Prevent user modification of GNOME lock-delay"
+    - name: Prevent user modification of GNOME lock-delay
       lineinfile:
         path: /etc/dconf/db/local.d/locks/00-security-settings-lock
         regexp: '^/org/gnome/desktop/screensaver/lock-delay'
@@ -573,7 +541,7 @@
         - PCI-DSS-Req-8.1.8
         - DISA-STIG-RHEL-07-010110
     
-    - name: get back device associated to mountpoint
+    - name: Get backing device associated to home mountpoint
       shell: mount | grep ' /home ' |cut -d ' ' -f 1
       register: device_name
       check_mode: no
@@ -588,7 +556,7 @@
         - NIST-800-53-MP-2
         - DISA-STIG-RHEL-07-021000
     
-    - name: get back device previous mount option
+    - name: Get mount options for home mountpoint
       shell: mount | grep ' /home ' | sed -re 's:.*\((.*)\):\1:'
       register: device_cur_mountoption
       check_mode: no
@@ -603,7 +571,7 @@
         - NIST-800-53-MP-2
         - DISA-STIG-RHEL-07-021000
     
-    - name: get back device fstype
+    - name: Get fstype for home mountpoint
       shell: mount | grep ' /home ' | cut -d ' ' -f 5
       register: device_fstype
       check_mode: no
@@ -700,17 +668,11 @@
         - DISA-STIG-RHEL-07-040201
     
     
-    - name: XCCDF Value var_selinux_state # promote to variable
-      set_fact:
-        var_selinux_state: enforcing
-      tags:
-        - always
-    
-    - name: "Ensure SELinux State is Enforcing"
+    - name: Ensure SELinux State is Enforcing
       lineinfile:
         path: /etc/sysconfig/selinux
         regexp: '^SELINUX='
-        line: "SELINUX={{ var_selinux_state }}"
+        line: "SELINUX=enforcing"
         create: yes
       tags:
         - selinux_state
@@ -736,11 +698,11 @@
       tags:
         - always
     
-    - name: "Configure SELinux Policy"
+    - name: Configure SELinux Policy Type
       lineinfile:
         path: /etc/sysconfig/selinux
         regexp: '^SELINUXTYPE='
-        line: "SELINUXTYPE={{ var_selinux_policy_name }}"
+        line: "SELINUXTYPE={{ selinux_policy_type }}"
         create: yes
       tags:
         - selinux_policytype
@@ -760,7 +722,7 @@
         - NIST-800-171-3.7.2
         - DISA-STIG-RHEL-07-020220
     
-    - name: "Prevent Log In to Accounts With Empty Password - system-auth"
+    - name: Prevent Log In to Accounts With Empty Password - system-auth
       replace:
         dest: /etc/pam.d/system-auth
         follow: yes
@@ -782,7 +744,7 @@
         - CJIS-5.5.2
         - DISA-STIG-RHEL-07-010290
     
-    - name: "Prevent Log In to Accounts With Empty Password - password-auth"
+    - name: Prevent Log In to Accounts With Empty Password - password-auth
       replace:
         dest: /etc/pam.d/password-auth
         follow: yes
@@ -805,18 +767,12 @@
         - DISA-STIG-RHEL-07-010290
     
     
-    - name: XCCDF Value var_accounts_minimum_age_login_defs # promote to variable
-      set_fact:
-        var_accounts_minimum_age_login_defs: 1
-      tags:
-        - always
-    
     - name: Set Password Minimum Age
       lineinfile:
           create: yes
           dest: /etc/login.defs
           regexp: ^#?PASS_MIN_DAYS
-          line: "PASS_MIN_DAYS {{ var_accounts_minimum_age_login_defs }}"
+          line: "PASS_MIN_DAYS {{ password_minimum_age }}"
       tags:
         - accounts_minimum_age_login_defs
         - medium_severity
@@ -830,18 +786,13 @@
         - CJIS-5.6.2.1.1
         - DISA-STIG-RHEL-07-010230
     
-    - name: XCCDF Value var_accounts_maximum_age_login_defs # promote to variable
-      set_fact:
-        var_accounts_maximum_age_login_defs: 60
-      tags:
-        - always
     
     - name: Set Password Maximum Age
       lineinfile:
         create: yes
         dest: /etc/login.defs
         regexp: ^#?PASS_MAX_DAYS
-        line: "PASS_MAX_DAYS {{ var_accounts_maximum_age_login_defs }}"
+        line: "PASS_MAX_DAYS {{ password_maximum_age }}"
       tags:
         - accounts_maximum_age_login_defs
         - medium_severity
@@ -857,18 +808,12 @@
         - CJIS-5.6.2.1
         - DISA-STIG-RHEL-07-010250
     
-    - name: XCCDF Value var_account_disable_post_pw_expiration # promote to variable
-      set_fact:
-        var_account_disable_post_pw_expiration: 0
-      tags:
-        - always
-    
-    - name: Set Account Expiration Following Inactivity
+    - name: Set Account Disabled Following Inactivity
       lineinfile:
         create: yes
         dest: /etc/default/useradd
         regexp: ^INACTIVE
-        line: "INACTIVE={{ var_account_disable_post_pw_expiration }}"
+        line: "INACTIVE={{ account_disable_after_inactivity_days }}"
       tags:
         - account_disable_post_pw_expiration
         - medium_severity
@@ -884,18 +829,13 @@
         - CJIS-5.6.2.1.1
         - DISA-STIG-RHEL-07-010310
     
-    - name: XCCDF Value var_password_pam_maxrepeat # promote to variable
-      set_fact:
-        var_password_pam_maxrepeat: 2
-      tags:
-        - always
     
-    - name: Ensure PAM variable maxrepeat is set accordingly
+    - name: Ensure PAM password maximum repeating characters is set accordingly
       lineinfile:
-        create=yes
-        dest="/etc/security/pwquality.conf"
-        regexp="^maxrepeat"
-        line="maxrepeat = {{ var_password_pam_maxrepeat }}"
+        create: yes
+        dest: "/etc/security/pwquality.conf"
+        regexp: "^maxrepeat"
+        line: "maxrepeat = {{ password_pam_char_maxrepeat }}"
       tags:
         - accounts_password_pam_maxrepeat
         - medium_severity
@@ -908,18 +848,12 @@
         - DISA-STIG-RHEL-07-010180
     
     
-    - name: XCCDF Value var_password_pam_maxclassrepeat # promote to variable
-      set_fact:
-        var_password_pam_maxclassrepeat: 4
-      tags:
-        - always
-    
-    - name: Ensure PAM variable maxclassrepeat is set accordingly
+    - name: Ensure PAM password maximum repeating characters of the same class is set accordingly
       lineinfile:
-        create=yes
-        dest="/etc/security/pwquality.conf"
-        regexp="^maxclassrepeat"
-        line="maxclassrepeat = {{ var_password_pam_maxclassrepeat }}"
+        create: yes
+        dest: "/etc/security/pwquality.conf"
+        regexp: "^maxclassrepeat"
+        line: "maxclassrepeat = {{ password_pam_class_maxrepeat }}"
       tags:
         - accounts_password_pam_maxclassrepeat
         - medium_severity
@@ -932,18 +866,12 @@
         - DISA-STIG-RHEL-07-010190
     
     
-    - name: XCCDF Value var_password_pam_dcredit # promote to variable
-      set_fact:
-        var_password_pam_dcredit: -1
-      tags:
-        - always
-    
-    - name: Ensure PAM variable dcredit is set accordingly
+    - name: Ensure PAM password minimum included digits is set accordingly
       lineinfile:
-        create=yes
-        dest="/etc/security/pwquality.conf"
-        regexp="^dcredit"
-        line="dcredit = {{ var_password_pam_dcredit }}"
+        create: yes
+        dest: "/etc/security/pwquality.conf"
+        regexp: "^dcredit"
+        line: "dcredit = {{ password_pam_dcredit }}"
       tags:
         - accounts_password_pam_dcredit
         - medium_severity
@@ -956,18 +884,12 @@
         - DISA-STIG-RHEL-07-010140
     
     
-    - name: XCCDF Value var_password_pam_minlen # promote to variable
-      set_fact:
-        var_password_pam_minlen: 15
-      tags:
-        - always
-    
-    - name: Ensure PAM variable minlen is set accordingly
+    - name: Ensure PAM password minimum length is set accordingly
       lineinfile:
-        create=yes
-        dest="/etc/security/pwquality.conf"
-        regexp="^minlen"
-        line="minlen = {{ var_password_pam_minlen }}"
+        create: yes
+        dest: "/etc/security/pwquality.conf"
+        regexp: "^minlen"
+        line: "minlen = {{ password_pam_minlen }}"
       tags:
         - accounts_password_pam_minlen
         - medium_severity
@@ -981,18 +903,12 @@
         - DISA-STIG-RHEL-07-010280
     
     
-    - name: XCCDF Value var_password_pam_ucredit # promote to variable
-      set_fact:
-        var_password_pam_ucredit: -1
-      tags:
-        - always
-    
-    - name: Ensure PAM variable ucredit is set accordingly
+    - name: Ensure PAM minimum uppercase characters is set accordingly
       lineinfile:
-        create=yes
-        dest="/etc/security/pwquality.conf"
-        regexp="^ucredit"
-        line="ucredit = {{ var_password_pam_ucredit }}"
+        create: yes
+        dest: "/etc/security/pwquality.conf"
+        regexp: "^ucredit"
+        line: "ucredit = {{ password_pam_ucredit }}"
       tags:
         - accounts_password_pam_ucredit
         - medium_severity
@@ -1004,18 +920,12 @@
         - DISA-STIG-RHEL-07-010120
     
     
-    - name: XCCDF Value var_password_pam_ocredit # promote to variable
-      set_fact:
-        var_password_pam_ocredit: -1
-      tags:
-        - always
-    
-    - name: Ensure PAM variable ocredit is set accordingly
+    - name: Ensure PAM password minimum special characters is set accordingly
       lineinfile:
-        create=yes
-        dest="/etc/security/pwquality.conf"
-        regexp="^ocredit"
-        line="ocredit = {{ var_password_pam_ocredit }}"
+        create: yes
+        dest: "/etc/security/pwquality.conf"
+        regexp: "^ocredit"
+        line: "ocredit = {{ password_pam_ocredit }}"
       tags:
         - accounts_password_pam_ocredit
         - medium_severity
@@ -1026,18 +936,12 @@
         - DISA-STIG-RHEL-07-010150
     
     
-    - name: XCCDF Value var_password_pam_lcredit # promote to variable
-      set_fact:
-        var_password_pam_lcredit: -1
-      tags:
-        - always
-    
-    - name: Ensure PAM variable lcredit is set accordingly
+    - name: Ensure PAM password minimum lowercase characters is set accordingly
       lineinfile:
-        create=yes
-        dest="/etc/security/pwquality.conf"
-        regexp="^lcredit"
-        line="lcredit = {{ var_password_pam_lcredit }}"
+        create: yes
+        dest: "/etc/security/pwquality.conf"
+        regexp: "^lcredit"
+        line: "lcredit = {{ password_pam_lcredit }}"
       tags:
         - accounts_password_pam_lcredit
         - medium_severity
@@ -1049,18 +953,12 @@
         - DISA-STIG-RHEL-07-010130
     
     
-    - name: XCCDF Value var_password_pam_difok # promote to variable
-      set_fact:
-        var_password_pam_difok: 8
-      tags:
-        - always
-    
-    - name: Ensure PAM variable difok is set accordingly
+    - name: Ensure PAM password minimum number of different characters is set accordingly
       lineinfile:
-        create=yes
-        dest="/etc/security/pwquality.conf"
-        regexp="^difok"
-        line="difok = {{ var_password_pam_difok }}"
+        create: yes
+        dest: "/etc/security/pwquality.conf"
+        regexp: "^difok"
+        line: "difok = {{ password_pam_difok }}"
       tags:
         - accounts_password_pam_difok
         - medium_severity
@@ -1072,18 +970,12 @@
         - DISA-STIG-RHEL-07-010160
     
     
-    - name: XCCDF Value var_password_pam_minclass # promote to variable
-      set_fact:
-        var_password_pam_minclass: 4
-      tags:
-        - always
-    
-    - name: Ensure PAM variable minclass is set accordingly
+    - name: Ensure PAM password minimum number of different character classes is set accordingly
       lineinfile:
-        create=yes
-        dest="/etc/security/pwquality.conf"
-        regexp="^minclass"
-        line="minclass = {{ var_password_pam_minclass }}"
+        create: yes
+        dest: "/etc/security/pwquality.conf"
+        regexp: "^minclass"
+        line: "minclass = {{ password_pam_minclass }}"
       tags:
         - accounts_password_pam_minclass
         - medium_severity
@@ -1137,18 +1029,13 @@
         - CJIS-5.6.2.2
         - DISA-STIG-RHEL-07-010220
     
-    - name: XCCDF Value var_accounts_tmout # promote to variable
-      set_fact:
-        var_accounts_tmout: 600
-      tags:
-        - always
     
     - name: Set Interactive Session Timeout
       lineinfile:
           create: yes
           dest: /etc/profile
           regexp: ^#?TMOUT
-          line: "TMOUT={{ var_accounts_tmout }}"
+          line: "TMOUT={{ interactive_session_timeout }}"
       tags:
         - accounts_tmout
         - medium_severity
@@ -1161,19 +1048,14 @@
         - NIST-800-171-3.1.11
         - DISA-STIG-RHEL-07-040160
     
-    - name: XCCDF Value var_accounts_max_concurrent_login_sessions # promote to variable
-      set_fact:
-        var_accounts_max_concurrent_login_sessions: 10
-      tags:
-        - always
     
-    - name: "Limit the Number of Concurrent Login Sessions Allowed Per User"
+    - name: Limit the Number of Concurrent Login Sessions Allowed Per User
       lineinfile:
         state: present
         dest: /etc/security/limits.conf
         insertbefore: "^# End of file"
         regexp: "^#?\\*.*maxlogins"
-        line: "*           hard    maxlogins     {{ var_accounts_max_concurrent_login_sessions }}"
+        line: "*           hard    maxlogins     {{ max_concurrent_login_sessions }}"
       tags:
         - accounts_max_concurrent_login_sessions
         - low_severity
@@ -1185,17 +1067,12 @@
         - CJIS-5.5.2.2
         - DISA-STIG-RHEL-07-040000
     
-    - name: XCCDF Value var_accounts_fail_delay # promote to variable
-      set_fact:
-        var_accounts_fail_delay: 4
-      tags:
-        - always
     
     - name: Set accounts logon fail delay
       lineinfile:
         dest: /etc/login.defs
         regexp: ^FAIL_DELAY
-        line: "FAIL_DELAY {{ var_accounts_fail_delay }}"
+        line: "FAIL_DELAY {{ login_fail_delay }}"
       tags:
         - accounts_logon_fail_delay
         - low_severity
@@ -1204,18 +1081,12 @@
         - DISA-STIG-RHEL-07-010430
     
     
-    - name: XCCDF Value var_accounts_user_umask # promote to variable
-      set_fact:
-        var_accounts_user_umask: 077
-      tags:
-        - always
-    
     - name: Ensure the Default UMASK is Set Correctly
       lineinfile:
         create: yes
         dest: /etc/login.defs
         regexp: ^UMASK
-        line: "UMASK {{ var_accounts_user_umask }}"
+        line: "UMASK {{ default_user_umask }}"
       tags:
         - accounts_umask_etc_login_defs
         - low_severity
@@ -1229,8 +1100,8 @@
     
     - name: Ensure screen is installed
       package:
-        name="{{item}}"
-        state=present
+        name: "{{item}}"
+        state: present
       with_items:
         - screen
       tags:
@@ -1245,7 +1116,7 @@
         - DISA-STIG-RHEL-07-010090
     
     
-    - name: "Enable GNOME3 Login Warning Banner"
+    - name: Enable GNOME3 Login Warning Banner
       ini_file:
         dest: "/etc/dconf/db/local/d/00-security-settings"
         section: "org/gnome/login-screen"
@@ -1267,7 +1138,7 @@
         - NIST-800-171-3.1.9
         - DISA-STIG-RHEL-07-010030
     
-    - name: "Prevent user modification of GNOME banner-message-enabled"
+    - name: Prevent user modification of GNOME banner-message-enabled
       lineinfile:
         path: /etc/dconf/db/local.d/locks/00-security-settings-lock
         regexp: '^/org/gnome/login-screen/banner-message-enable'
@@ -1288,7 +1159,7 @@
         - NIST-800-171-3.1.9
         - DISA-STIG-RHEL-07-010030
     
-    - name: Ensure sysctl net.ipv4.conf.default.send_redirects is set to 0
+    - name: Disable Kernel Parameter for Sending ICMP Redirects by Default
       sysctl:
         name: net.ipv4.conf.default.send_redirects
         value: 0
@@ -1310,7 +1181,7 @@
         - DISA-STIG-RHEL-07-040650
     
     
-    - name: Ensure sysctl net.ipv4.conf.all.send_redirects is set to 0
+    - name: Disable Kernel Parameter for Sending ICMP Redirects for All Interfaces
       sysctl:
         name: net.ipv4.conf.all.send_redirects
         value: 0
@@ -1331,7 +1202,7 @@
         - DISA-STIG-RHEL-07-040660
     
     
-    - name: Ensure sysctl net.ipv4.ip_forward is set to 0
+    - name: Disable Kernel Parameter for IP Forwarding
       sysctl:
         name: net.ipv4.ip_forward
         value: 0
@@ -1351,16 +1222,10 @@
         - DISA-STIG-RHEL-07-040740
     
     
-    - name: XCCDF Value sysctl_net_ipv4_conf_all_accept_source_route_value # promote to variable
-      set_fact:
-        sysctl_net_ipv4_conf_all_accept_source_route_value: 0
-      tags:
-        - always
-    
-    - name: Ensure sysctl net.ipv4.conf.all.accept_source_route is set
+    - name: Configure Kernel Parameter for Accepting Source-Routed Packets for All Interfaces
       sysctl:
         name: net.ipv4.conf.all.accept_source_route
-        value: "{{ sysctl_net_ipv4_conf_all_accept_source_route_value }}"
+        value: 0
         state: present
         reload: yes
       tags:
@@ -1377,16 +1242,10 @@
         - DISA-STIG-RHEL-07-040610
     
     
-    - name: XCCDF Value sysctl_net_ipv4_conf_all_accept_redirects_value # promote to variable
-      set_fact:
-        sysctl_net_ipv4_conf_all_accept_redirects_value: 0
-      tags:
-        - always
-    
-    - name: Ensure sysctl net.ipv4.conf.all.accept_redirects is set
+    - name: Configure Kernel Parameter for Accepting ICMP Redirects for All Interfaces
       sysctl:
         name: net.ipv4.conf.all.accept_redirects
-        value: "{{ sysctl_net_ipv4_conf_all_accept_redirects_value }}"
+        value: 0
         state: present
         reload: yes
       tags:
@@ -1404,16 +1263,10 @@
         - DISA-STIG-RHEL-07-040641
     
     
-    - name: XCCDF Value sysctl_net_ipv4_conf_default_accept_source_route_value # promote to variable
-      set_fact:
-        sysctl_net_ipv4_conf_default_accept_source_route_value: 0
-      tags:
-        - always
-    
-    - name: Ensure sysctl net.ipv4.conf.default.accept_source_route is set
+    - name: Configure Kernel Parameter for Accepting Source-Routed Packets By Default
       sysctl:
         name: net.ipv4.conf.default.accept_source_route
-        value: "{{ sysctl_net_ipv4_conf_default_accept_source_route_value }}"
+        value: 0 
         state: present
         reload: yes
       tags:
@@ -1432,16 +1285,10 @@
         - DISA-STIG-RHEL-07-040620
     
     
-    - name: XCCDF Value sysctl_net_ipv4_conf_default_accept_redirects_value # promote to variable
-      set_fact:
-        sysctl_net_ipv4_conf_default_accept_redirects_value: 0
-      tags:
-        - always
-    
-    - name: Ensure sysctl net.ipv4.conf.default.accept_redirects is set
+    - name: Configure Kernel Parameter for Accepting ICMP Redirects By Default
       sysctl:
         name: net.ipv4.conf.default.accept_redirects
-        value: "{{ sysctl_net_ipv4_conf_default_accept_redirects_value }}"
+        value: 0
         state: present
         reload: yes
       tags:
@@ -1460,16 +1307,10 @@
         - DISA-STIG-RHEL-07-040640
     
     
-    - name: XCCDF Value sysctl_net_ipv4_icmp_echo_ignore_broadcasts_value # promote to variable
-      set_fact:
-        sysctl_net_ipv4_icmp_echo_ignore_broadcasts_value: 1
-      tags:
-        - always
-    
-    - name: Ensure sysctl net.ipv4.icmp_echo_ignore_broadcasts is set
+    - name: Configure Kernel Parameter to Ignore ICMP Broadcast Echo Requests
       sysctl:
         name: net.ipv4.icmp_echo_ignore_broadcasts
-        value: "{{ sysctl_net_ipv4_icmp_echo_ignore_broadcasts_value }}"
+        value: 1
         state: present
         reload: yes
       tags:
@@ -1487,16 +1328,10 @@
         - DISA-STIG-RHEL-07-040630
     
     
-    - name: XCCDF Value sysctl_net_ipv6_conf_all_accept_source_route_value # promote to variable
-      set_fact:
-        sysctl_net_ipv6_conf_all_accept_source_route_value: 0
-      tags:
-        - always
-    
-    - name: Ensure sysctl net.ipv6.conf.all.accept_source_route is set
+    - name: Configure Kernel Parameter for Accepting Source-Routed Packets for All Interfaces
       sysctl:
         name: net.ipv6.conf.all.accept_source_route
-        value: "{{ sysctl_net_ipv6_conf_all_accept_source_route_value }}"
+        value: 0 
         state: present
         reload: yes
       tags:
@@ -1513,9 +1348,9 @@
     
     - name: Enable service firewalld
       service:
-        name="{{item}}"
-        enabled="yes"
-        state="started"
+        name: "{{item}}"
+        enabled: yes
+        state: started
       with_items:
         - firewalld
       tags:
@@ -1530,13 +1365,19 @@
         - NIST-800-171-3.4.7
         - DISA-STIG-RHEL-07-040520
     
+
+# there should be a firewall implementation called here. 
+# DISA STIG requires that the Default Zone is set to drop
+# Doing that on a default RHEL system will block all traffic
+# The system will be more secure :-)
+
     
-    - name: Ensure kernel module 'dccp' is disabled
+    - name: Disable the Datagram Congestion Control Protocol kernel module 'dccp' 
       lineinfile:
-        create=yes
-        dest="/etc/modprobe.d/{{item}}.conf"
-        regexp="{{item}}"
-        line="install {{item}} /bin/true"
+        create: yes
+        dest: "/etc/modprobe.d/{{item}}.conf"
+        regexp: "{{item}}"
+        line: "install {{item}} /bin/true"
       with_items:
         - dccp
       tags:
@@ -1551,12 +1392,6 @@
         - CJIS-5.10.1
         - DISA-STIG-RHEL-07-020101
     
-    
-    - name: XCCDF Value rsyslog_remote_loghost_address # promote to variable
-      set_fact:
-        rsyslog_remote_loghost_address: logcollector
-      tags:
-        - always
     
     - name: "Set rsyslog remote loghost"
       lineinfile:
@@ -1579,9 +1414,9 @@
     
     - name: Enable service auditd
       service:
-        name="{{item}}"
-        enabled="yes"
-        state="started"
+        name: "{{item}}"
+        enabled: yes
+        state: started
       with_items:
         - auditd
       tags:
@@ -1607,12 +1442,6 @@
         - DISA-STIG-RHEL-07-030000
     
     
-    - name: XCCDF Value var_auditd_space_left_action # promote to variable
-      set_fact:
-        var_auditd_space_left_action: email
-      tags:
-        - always
-    
     - name: Configure auditd space_left Action on Low Disk Space
       lineinfile:
         dest: /etc/audit/auditd.conf
@@ -1634,12 +1463,6 @@
         - NIST-800-171-3.3.1
         - PCI-DSS-Req-10.7
         - CJIS-5.4.1.1
-    
-    - name: XCCDF Value var_auditd_action_mail_acct # promote to variable
-      set_fact:
-        var_auditd_action_mail_acct: root
-      tags:
-        - always
     
     - name: Configure auditd mail_acct Action on Low Disk Space
       lineinfile:
